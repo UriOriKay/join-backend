@@ -15,7 +15,6 @@ class IsAdminForDeleteOrPatchAndReadOnly(BasePermission):
 
 class IsOwnerOAdmin(BasePermission):
     def has_object_permission(self, request, view, obj):
-        print(request.user.email)
         if request.method in SAFE_METHODS:
             return True
         else:

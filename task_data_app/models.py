@@ -61,6 +61,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.name or self.email.split('@')[0]
+    
+    def save(self, *args, **kwargs):
+        if self.password:
+            self.set_password(self.password)
+        super().save(*args, **kwargs)
+        
 
     def __str__(self):
         return self.name
@@ -74,12 +80,6 @@ class Category(models.Model):
         
         return self.name
     
-class SubTask(models.Model):
-    name = models.CharField(max_length=50, blank=True, default='')
-    checked = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.name
 
 class Task(models.Model):
     container = models.CharField(max_length=30, blank=True, default='')
@@ -90,7 +90,14 @@ class Task(models.Model):
     priority = models.CharField(max_length=25, blank=True)
     priorityImg = models.CharField(max_length=50, blank=True)
     user = models.ManyToManyField(User, related_name='task', blank=True)
-    subtask = models.ManyToManyField(SubTask, related_name='task', blank=True)
     
     def __str__(self):   
         return self.title
+    
+class SubTask(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, null=True)
+    name = models.CharField(max_length=50, blank=True, default='')
+    checked = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name

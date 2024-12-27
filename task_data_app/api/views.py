@@ -1,12 +1,24 @@
-from rest_framework import generics
-from task_data_app.models import Task, User, Category, SubTask
-from .serializers import TaskSerializer, UserSerializer, RegisterSerializer, CategorySerializer, NewTaskSerializer, NewUserSerializer
-from rest_framework.authtoken.views import APIView, ObtainAuthToken
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.authtoken.models import Token
-from .permissions import IsStafforReadOnly, IsOwnerOAdmin
 from datetime import datetime
+
+from rest_framework import generics
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import APIView, ObtainAuthToken
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from task_data_app.models import Task, User, Category, SubTask
+from rest_framework.response import Response
+from rest_framework import status
+from django.contrib.auth import get_user_model
+
+from .serializers import (
+    TaskSerializer, 
+    UserSerializer, 
+    RegisterSerializer, 
+    CategorySerializer, 
+    NewTaskSerializer, 
+    NewUserSerializer,
+    LoginSerializer,
+)
+from .permissions import IsOwnerOAdmin
 
 
 
@@ -19,8 +31,11 @@ class RegistrationView(APIView):
             request.data['password'] = "join356"
             request.data['repeated_password'] = "join356"
             request.data['is_active'] = False
+
+
         else:
             request.data['is_active'] = True
+            request.data['phone'] = 0
 
         serializer = RegisterSerializer(data=request.data)
 
@@ -28,28 +43,52 @@ class RegistrationView(APIView):
             saved_account = serializer.save()
             token, created = Token.objects.get_or_create(user=saved_account)
             return Response({'message': 'Account created successfully',}, status=201)
-        else:
-            return Response(serializer.errors, status=200)
+        return Response(serializer.errors, status=200)
 
 
 class CustomLoginView(ObtainAuthToken):
     permission_classes = [AllowAny]
-
+    serializer_class = LoginSerializer
     def post(self, request):
+        print("Hier")
         serializer = self.serializer_class(data=request.data)
-        
         data = {}
+        try:
+            serializer.is_valid(raise_exception=True)
+        except:
+            return Response({'error': 'Wrong username or password'}, status=status.HTTP_401_UNAUTHORIZED)
+
         if serializer.is_valid():
-            user = serializer.validated_data['user']
-            token, created = Token.objects.get_or_create(user=user)
-            data = {
-                'token': token.key,
-                'name': user.name,
-                'name_tag': user.name_tag
-            }
+            user_data = serializer.validated_data
+            print("After serializer")
+            if user_data.email:
+                try:
+                    token, created = Token.objects.get_or_create(user=user_data)
+                    data = {
+                        'token': token.key,
+                        'name': user_data.name,
+                        'name_tag': user_data.name_tag
+                    }
+                    print("data",data)
+                    return Response(data, status=status.HTTP_200_OK)
+                except User.DoesNotExist:
+                    print("User does not exist")
+                    return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
         else:
-            data = serializer.errors
-        return Response(data)
+            user_data = serializer.data
+            print("user_data")
+            if serializer.data.get('email'):
+                try:
+                    user=get_user_model().objects.get(email=user_data['email'])
+                    if not user.is_active:
+                        return Response({'error': 'User is not active'}, status=status.HTTP_403_FORBIDDEN)
+                    else:
+                        print("wrong password")
+                        return Response({'error': 'Wrong username or password'}, status=status.HTTP_401_UNAUTHORIZED)
+                except get_user_model().DoesNotExist:
+                    return Response({'error': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Email field is requiered'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TaskViewSet(generics.ListCreateAPIView):
@@ -61,7 +100,6 @@ class TaskViewSet(generics.ListCreateAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        # print(data)
         transformed_data = []
 
         for task in data:
@@ -178,8 +216,6 @@ class AuthenticationView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
         return Response({"message": "Authenticated"})
-
-
 
 
 class UserViewSet(generics.ListCreateAPIView):
