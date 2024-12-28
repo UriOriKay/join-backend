@@ -11,8 +11,8 @@ This project is build as a student project to create an costum REST API with Dja
 ## How to install this BackEnd
 
 1. clone this project
-```
+```console
     git clone https://github.com/your-repo/joinbackend.git
 ```
 
-get testetd
+get tested
