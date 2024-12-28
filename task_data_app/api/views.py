@@ -24,9 +24,30 @@ from .permissions import IsOwnerOAdmin
 
 
 class RegistrationView(APIView):
+    """
+    API view for user registration.
+
+    Methods
+    -------
+    post(request)
+        Handles the registration of a new user.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """
+        Handles the registration of a new user.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request containing user registration data.
+
+        Returns
+        -------
+        Response
+            A response indicating the success or failure of the registration.
+        """
         if request.data.get('contact'):
             request.data['password'] = "join356"
             request.data['repeated_password'] = "join356"
@@ -47,20 +68,39 @@ class RegistrationView(APIView):
 
 
 class CustomLoginView(ObtainAuthToken):
+    """
+    Custom API view for user login.
+
+    Methods
+    -------
+    post(request)
+        Handles user authentication and token generation.
+    """
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
     def post(self, request):
-        print("Hier")
+        """
+        Handles user authentication and token generation.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request containing login credentials.
+
+        Returns
+        -------
+        Response
+            A response with the user's token and additional information.
+        """
         serializer = self.serializer_class(data=request.data)
         data = {}
         try:
             serializer.is_valid(raise_exception=True)
-        except:
+        except Exception as e:
+            print(e)
             return Response({'error': 'Wrong username or password'}, status=status.HTTP_401_UNAUTHORIZED)
-
         if serializer.is_valid():
             user_data = serializer.validated_data
-            print("After serializer")
             if user_data.email:
                 try:
                     token, created = Token.objects.get_or_create(user=user_data)
@@ -69,7 +109,6 @@ class CustomLoginView(ObtainAuthToken):
                         'name': user_data.name,
                         'name_tag': user_data.name_tag
                     }
-                    print("data",data)
                     return Response(data, status=status.HTTP_200_OK)
                 except User.DoesNotExist:
                     print("User does not exist")
@@ -91,12 +130,40 @@ class CustomLoginView(ObtainAuthToken):
                 return Response({'error': 'Email field is requiered'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+
 class TaskViewSet(generics.ListCreateAPIView):
+    """
+    ViewSet for managing tasks.
+
+    Methods
+    -------
+    get(request, *args, **kwargs)
+        Retrieves all tasks.
+    post(request)
+        Creates a new task.
+    put(request)
+        Updates an existing task.
+    delete(request)
+        Deletes a task.
+    """
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        """
+        Retrieves all tasks with detailed transformation.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request.
+
+        Returns
+        -------
+        Response
+            A response containing transformed task data.
+        """
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
@@ -124,32 +191,117 @@ class TaskViewSet(generics.ListCreateAPIView):
         return Response(transformed_data)
 
     def get_category_names(self, category_ids):
-        # Convert category IDs to category names.
+        """
+        Converts category IDs to category names.
+
+        Parameters
+        ----------
+        category_ids : list of int
+            List of IDs corresponding to the categories.
+
+        Returns
+        -------
+        list of str
+            List of category names associated with the provided IDs.
+        """
         return list(Category.objects.filter(id__in=category_ids).values_list('name', flat=True))
 
     def get_assigned_to_names(self, user_ids):
-            # Convert user IDs to user names.
-            return list(User.objects.filter(id__in=user_ids).values_list('name', flat=True))
+        """
+        Converts user IDs to user names.
+
+        Parameters
+        ----------
+        user_ids : list of int
+            List of user IDs associated with the task.
+
+        Returns
+        -------
+        list of str
+            List of names corresponding to the provided user IDs.
+        """
+        return list(User.objects.filter(id__in=user_ids).values_list('name', flat=True))
 
     def get_name_tags(self, user_ids):
-        # Generate name tags from user first and last names.
+        """
+        Generates name tags from user IDs.
+
+        Parameters
+        ----------
+        user_ids : list of int
+            List of user IDs associated with the task.
+
+        Returns
+        -------
+        list of str
+            List of name tags corresponding to the provided user IDs.
+        """
         return list(User.objects.filter(id__in=user_ids).values_list('name_tag', flat=True))
 
     def get_assigned_colors(self, user_ids):
-        """Get assigned colors for users based on user IDs."""
+        """
+        Retrieves assigned colors for users based on their IDs.
+
+        Parameters
+        ----------
+        user_ids : list of int
+            List of user IDs associated with the task.
+
+        Returns
+        -------
+        list of str
+            List of colors corresponding to the provided user IDs.
+        """
         users = User.objects.filter(id__in=user_ids)
         return [user.color for user in users]
 
     def get_subtask_titles(self, subtask_ids):
-        """Convert subtask IDs to subtask titles."""
+        """
+        Converts subtask IDs to subtask titles.
+
+        Parameters
+        ----------
+        subtask_ids : list of int
+            List of subtask IDs associated with the task.
+
+        Returns
+        -------
+        list of str
+            List of subtask titles corresponding to the provided IDs.
+        """
         return list(SubTask.objects.filter(id__in=subtask_ids).values_list('name', flat=True))
 
     def get_subtask_statuses(self, subtask_ids):
-        """Get the status (checked/unchecked) of subtasks."""
+        """
+        Retrieves the status (checked/unchecked) of subtasks.
+
+        Parameters
+        ----------
+        subtask_ids : list of int
+            List of subtask IDs associated with the task.
+
+        Returns
+        -------
+        list of str
+            List of subtask statuses where each status is either "checked" or "unchecked".
+        """
         subtasks = SubTask.objects.filter(id__in=subtask_ids)
         return ["checked" if subtask.checked else "unchecked" for subtask in subtasks]
 
     def post(self, request):
+        """
+        Creates a new task.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request containing task data.
+
+        Returns
+        -------
+        Response
+            A response with the created task data or errors.
+        """
         serializer = NewTaskSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -159,6 +311,19 @@ class TaskViewSet(generics.ListCreateAPIView):
             return Response(serializer.errors, status=400)
 
     def put(self, request):
+        """
+        Updates an existing task.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request containing updated task data.
+
+        Returns
+        -------
+        Response
+            A response with the updated task data or errors.
+        """
         task = Task.objects.get(id=request.data["id"])
         serilizer = TaskSerializer(task, data=request.data)
         if serilizer.is_valid():
@@ -169,6 +334,19 @@ class TaskViewSet(generics.ListCreateAPIView):
             return Response(serilizer.errors, status=400)
 
     def delete(self, request):
+        """
+        Deletes a task.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request containing the task ID to delete.
+
+        Returns
+        -------
+        Response
+            A response with the remaining tasks after deletion.
+        """
         task = Task.objects.get(id=request.data["id"])
         task.delete()
         all_tasks = TaskSerializer(Task.objects.all(), many=True).data
@@ -176,10 +354,31 @@ class TaskViewSet(generics.ListCreateAPIView):
 
 
 class TaskSummaryView(generics.ListAPIView):
+    """
+    View for retrieving task summaries.
+
+    Methods
+    -------
+    get(request)
+        Retrieves a summary of tasks, including priority counts and due dates.
+    """
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
 
     def get(self, request):
+        """
+        Retrieves a summary of tasks, including counts by priority and containers.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request.
+
+        Returns
+        -------
+        Response
+            A response with task summary data.
+        """
         serializer = self.get_serializer(self.get_queryset(), many=True)
         summaryTasks = {
             0: 0,
@@ -219,10 +418,46 @@ class AuthenticationView(APIView):
 
 
 class UserViewSet(generics.ListCreateAPIView):
+    """
+    ViewSet for managing user-related operations.
+
+    Attributes
+    ----------
+    queryset : QuerySet
+        The queryset containing all User instances.
+    serializer_class : Serializer
+        The serializer class for serializing and deserializing User instances.
+    permission_classes : list
+        Permissions required to access the view.
+
+    Methods
+    -------
+    get(request)
+        Retrieves all users in a transformed format.
+    put(request)
+        Updates an existing user's details.
+    delete(request)
+        Deletes a user by ID.
+    post(request)
+        Creates a new user.
+    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
     def get(self, request):
+        """
+        Retrieves all users and transforms their data.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request.
+
+        Returns
+        -------
+        Response
+            A response containing transformed user data.
+        """
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
@@ -241,6 +476,19 @@ class UserViewSet(generics.ListCreateAPIView):
         return Response(contacts)
     
     def put (self, request):
+        """
+        Updates an existing user's details.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request containing updated user data.
+
+        Returns
+        -------
+        Response
+            A response with the updated user data or errors.
+        """
         user = User.objects.get(id=request.data["id"])
         pw = user.password;
         serilizer = UserSerializer(user, data=request.data)
@@ -253,12 +501,38 @@ class UserViewSet(generics.ListCreateAPIView):
             return Response(serilizer.errors, status=400)
         
     def delete(self, request):
+        """
+        Deletes a user by ID.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request containing the user ID to delete.
+
+        Returns
+        -------
+        Response
+            A response with the remaining users after deletion.
+        """
         user = User.objects.get(id=request.data["id"])
         user.delete()
         all_users = UserSerializer(User.objects.all(), many=True).data
         return Response(all_users, status=201)
     
     def post(self, request):
+        """
+        Creates a new user.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request containing user data.
+
+        Returns
+        -------
+        Response
+            A response with the created user data or errors.
+        """
         serializer = NewUserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -269,33 +543,60 @@ class UserViewSet(generics.ListCreateAPIView):
 
 
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
+    """
+    View for retrieving, updating, or deleting a specific user.
+
+    Attributes
+    ----------
+    queryset : QuerySet
+        The queryset containing all User instances.
+    serializer_class : Serializer
+        The serializer class for serializing and deserializing User instances.
+    permission_classes : list
+        Permissions required to access the view.
+    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsOwnerOAdmin]
 
 
 
-class ContactViewSet(APIView):
-
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        pass
-
-    def post(self, request):
-        pass
-
-    def put(self, request):
-        pass
-
-    def delete(self, request):
-        pass
-
 class CategoryViewSet(generics.ListCreateAPIView):
+    """
+    ViewSet for managing categories.
+
+    Attributes
+    ----------
+    queryset : QuerySet
+        The queryset containing all Category instances.
+    serializer_class : Serializer
+        The serializer class for serializing and deserializing Category instances.
+    permission_classes : list
+        Permissions required to access the view.
+
+    Methods
+    -------
+    get(request)
+        Retrieves all categories.
+    """
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """
+        Retrieves all categories.
+
+        Parameters
+        ----------
+        request : Request
+            The HTTP request.
+
+        Returns
+        -------
+        Response
+            A response containing serialized category data.
+        """
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
