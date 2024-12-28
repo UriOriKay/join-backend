@@ -28,17 +28,15 @@ This project is build as a student project to create an costum REST API with Dja
 ```
     python manage.py makemigrations
     python manage.py migrate
-
 ```
 
 5. Create a superuser
 ```
-python manage.py createsuperuser
-
+    python manage.py createsuperuser
 ```
 
 6. Start the development server
 ```
-python manage.py runserver
+    python manage.py runserver
 ```
 
