@@ -151,6 +151,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             The generated name tag.
         """
         nameArray = name.split(' ')
+        if len(nameArray) == 1:
+            return nameArray[0][0]
         return nameArray[0][0] + nameArray[1][0]
     
     def SetRandomColor(self):
