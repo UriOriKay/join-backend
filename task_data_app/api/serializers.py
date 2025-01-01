@@ -125,7 +125,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'error': 'Passwords do not match'})
         account = User(
                     name=self.validated_data['name'], 
-                    email=self.validated_data['email'],
+                    email=self.validated_data['email'].lower(),
                     name_tag=self.setNameTag(self.validated_data['name']),
                     color=self.SetRandomColor(),
                     phone=self.validated_data['phone'],
@@ -304,6 +304,7 @@ class LoginSerializer(serializers.Serializer):
             If the credentials are invalid or the user is inactive.
         """
         user = authenticate_with_username_and_password(attrs['email'], attrs['password'])
+        print (user)
         if user: 
             if user.is_active:
                 return user

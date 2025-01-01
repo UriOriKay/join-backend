@@ -27,7 +27,12 @@ def authenticate_with_username_and_password(email, password):
     user = User
     try:
         user = get_object_or_404(user, email=email)
+        print("user", user)
+        print("pass", user.password)
+        print("password", password)
+        print("check", user.check_password(password))
         if user.check_password(password):
             return user
     except user.DoesNotExist:
+        print("user not found")
         return None

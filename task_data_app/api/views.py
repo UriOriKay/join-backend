@@ -59,8 +59,8 @@ class RegistrationView(APIView):
             request.data['phone'] = 0
 
         serializer = RegisterSerializer(data=request.data)
-
         if serializer.is_valid():
+            print(serializer.validated_data['password'] )
             saved_account = serializer.save()
             token, created = Token.objects.get_or_create(user=saved_account)
             return Response({'message': 'Account created successfully',}, status=201)
@@ -93,6 +93,8 @@ class CustomLoginView(ObtainAuthToken):
             A response with the user's token and additional information.
         """
         serializer = self.serializer_class(data=request.data)
+        print("serializer", serializer)
+        print("serializer.data", serializer.is_valid())
         data = {}
         try:
             serializer.is_valid(raise_exception=True)
